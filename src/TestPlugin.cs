@@ -11,7 +11,8 @@ namespace Stormancer.Server.TestApp
 {
     class TestPlugin : IHostPlugin
     {
-        public int S2S_SCENE_COUNT = 10;
+        public const int S2S_SCENE_COUNT = 10;
+        public const string S2S_SCENE_TEMPLATE = "template-s2s";
         public string GetS2SSceneId(int n) => "test-s2s-" + n;
 
         public void Build(HostPluginBuildContext ctx)
@@ -30,12 +31,14 @@ namespace Stormancer.Server.TestApp
 
 
 
-                host.AddSceneTemplate("template-test", scene => {
+                host.AddSceneTemplate("template-test", scene =>
+                {
 
                     scene.AddController<TestController>();
                 });
 
-                host.AddSceneTemplate("template-s2s", scene => {
+                host.AddSceneTemplate(S2S_SCENE_TEMPLATE, scene =>
+                {
                     scene.AddController<S2SController>();
                 });
 
@@ -98,7 +101,7 @@ namespace Stormancer.Server.TestApp
 
                 for (int i = 0; i < S2S_SCENE_COUNT; i++)
                 {
-                    host.EnsureSceneExists(GetS2SSceneId(i), "template-s2s", isPublic: false, isPersistent: true);
+                    host.EnsureSceneExists(GetS2SSceneId(i), S2S_SCENE_TEMPLATE, isPublic: false, isPersistent: true);
                 }
 
             };
