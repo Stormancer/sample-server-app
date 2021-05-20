@@ -10,7 +10,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Stormancer.Abstractions.Server" Version="5.0.0-pre" />
-    <PackageReference Include="Stormancer.Server.Plugins.Api" Version="2.2.0.4-pre" />
+    <PackageReference Include="Stormancer.Server.Plugins.Api" Version="2.3.0-pre" />
     <PackageReference Include="Stormancer.Server.Plugins.Api.S2SProxyGenerator" Version="1.0.2.4" />
     <PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="6.1.0.12-pre" />
     <PackageReference Include="Stormancer.Server.Plugins.Replication" Version="0.1.3-pre" />
