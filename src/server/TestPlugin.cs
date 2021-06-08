@@ -21,6 +21,7 @@ namespace Stormancer.Server.TestApp
             {
                 builder.Register<S2SController>();
                 builder.Register<TestController>();
+                builder.Register<UsersTestController>();
 
             };
             ctx.HostStarting += (IHost host) =>
@@ -35,6 +36,7 @@ namespace Stormancer.Server.TestApp
                 {
 
                     scene.AddController<TestController>();
+                    scene.AddController<UsersTestController>();
                 });
 
                 host.AddSceneTemplate(S2S_SCENE_TEMPLATE, scene =>

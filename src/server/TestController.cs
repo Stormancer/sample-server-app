@@ -1,4 +1,6 @@
-﻿using Stormancer.Server.Plugins.API;
+﻿using Stormancer.Core;
+using Stormancer.Server.Components;
+using Stormancer.Server.Plugins.API;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,12 +16,14 @@ namespace Stormancer.Server.TestApp
         private readonly S2SProxy proxy;
         private readonly IHost host;
         private readonly ISerializer serializer;
+        private readonly IEnvironment environment;
 
-        public TestController(S2SProxy proxy, IHost host, ISerializer serializer)
+        public TestController(S2SProxy proxy, IHost host, ISerializer serializer, IEnvironment environment)
         {
             this.proxy = proxy;
             this.host = host;
             this.serializer = serializer;
+            this.environment = environment;
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
@@ -29,6 +33,16 @@ namespace Stormancer.Server.TestApp
             {
 
             }
+        }
+
+        /// <summary>
+        /// Demonstrates disconnecting a player from the server.
+        /// </summary>
+        /// <returns></returns>
+        [Api(ApiAccess.Public, ApiType.FireForget)]
+        public async Task ServerForceDisconnect(Packet<IScenePeerClient> packet)
+        {
+            await packet.Connection.DisconnectFromServer("test");
         }
 
         [Api(ApiAccess.Public, ApiType.Rpc)]
