@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Stormancer.Server.TestApp
@@ -14,25 +15,39 @@ namespace Stormancer.Server.TestApp
     class TestController : ControllerBase
     {
         private readonly S2SProxy proxy;
+        private readonly TestProxy selfProxy;
         private readonly IHost host;
         private readonly ISerializer serializer;
         private readonly IEnvironment environment;
 
-        public TestController(S2SProxy proxy, IHost host, ISerializer serializer, IEnvironment environment)
+        public TestController(S2SProxy proxy, TestProxy selfProxy, IHost host, ISerializer serializer, IEnvironment environment)
         {
             this.proxy = proxy;
+            this.selfProxy = selfProxy;
             this.host = host;
             this.serializer = serializer;
             this.environment = environment;
         }
 
-        [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task TestS2SAsyncEnumerable()
-        {
-            await foreach (var _ in proxy.AsyncEnumerable(CancellationToken.None))
-            {
 
-            }
+
+        [S2SApi]
+        public Task<string> SameSceneS2SMethod(string msg)
+        {
+            return Task.FromResult(msg);
+
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public Task<string> TestSameSceneS2S(string msg, CancellationToken cancellationToken)
+        {
+            return selfProxy.SameSceneS2SMethod(msg, cancellationToken);
+        }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public IAsyncEnumerable<TestDto> TestS2S(CancellationToken cancellationToken)
+        {
+            return AsyncEnumerable.Range(0, TestPlugin.S2S_SCENE_COUNT).Merge(i => proxy.AsyncEnumerable(i.ToString(), cancellationToken), cancellationToken);
         }
 
         /// <summary>
@@ -45,10 +60,12 @@ namespace Stormancer.Server.TestApp
             await packet.Connection.DisconnectFromServer("test");
         }
 
+
+
         [Api(ApiAccess.Public, ApiType.Rpc)]
-        public async Task<int> TestAppGlobalFunction(CancellationToken cancellationToken)
+        public async Task<IEnumerable<int>> TestAppGlobalFunction(CancellationToken cancellationToken)
         {
-            
+
 
             using var rq = await host.StartAppFunctionRequest("scenes.count", cancellationToken);
 
@@ -72,7 +89,32 @@ namespace Stormancer.Server.TestApp
             await rq.Results.ForEachAsync(r => r.Output.Complete());
 
             //Aggregate the received results into a single scene count, and return the result to the client.
-            return results.Sum(t => t.Result);
+            return results.Select(t => t.Result);
+        }
+    }
+
+    public static class AsyncEnumerableExtensions
+    {
+        public static IAsyncEnumerable<TResult> Merge<T, TResult>(this IAsyncEnumerable<T> source, Func<T, IAsyncEnumerable<TResult>> selector, CancellationToken cancellationToken)
+        {
+            var channel = Channel.CreateUnbounded<TResult>();
+
+            static async Task ReadAllAsync(ChannelWriter<TResult> writer, IAsyncEnumerable<T> sequence, Func<T, IAsyncEnumerable<TResult>> selector)
+            {
+                static async Task ReadImpl(IAsyncEnumerable<TResult> producer, ChannelWriter<TResult> writer)
+                {
+                    await foreach (var item in producer)
+                    {
+                        await writer.WriteAsync(item);
+                    }
+                }
+                var list = await sequence.Select(selector).Select(producer => ReadImpl(producer, writer)).ToListAsync();
+                await Task.WhenAll(list);
+                writer.Complete();
+            }
+            _ = ReadAllAsync(channel.Writer, source, selector); //Don't wait for completion.
+
+            return channel.Reader.ReadAllAsync(cancellationToken);
         }
     }
 }

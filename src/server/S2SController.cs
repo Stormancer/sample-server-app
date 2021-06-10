@@ -1,4 +1,5 @@
 ﻿using Stormancer.Server.Plugins.API;
+using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,7 @@ namespace Stormancer.Server.TestApp
         public int Number { get; set; }
     }
 
-    [Service(ServiceType = "tests.s2s")]
+    [Service(ServiceType = "tests.s2s", Named = true)]
     class S2SController : ControllerBase
     {
         [S2SApi]
@@ -25,6 +26,20 @@ namespace Stormancer.Server.TestApp
                 yield return new TestDto { Number = v, Value = v.ToString() };
                 await Task.Delay(100);
             }
+        }
+    }
+
+
+    class TestServiceLocator : IServiceLocatorProvider
+    {
+        public Task LocateService(ServiceLocationCtx ctx)
+        {
+            if(ctx.ServiceType == "tests.s2s")
+            {
+                ctx.SceneId = TestPlugin.GetS2SSceneId(ctx.ServiceName);
+            }
+
+            return Task.CompletedTask;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Stormancer.Plugins;
 using Stormancer.Server.Plugins.GameFinder;
+using Stormancer.Server.Plugins.ServiceLocator;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace Stormancer.Server.TestApp
     {
         public const int S2S_SCENE_COUNT = 10;
         public const string S2S_SCENE_TEMPLATE = "template-s2s";
-        public string GetS2SSceneId(int n) => "test-s2s-" + n;
+        public static string GetS2SSceneId(string n) => "test-s2s-" + n;
 
         public void Build(HostPluginBuildContext ctx)
         {
@@ -22,6 +23,7 @@ namespace Stormancer.Server.TestApp
                 builder.Register<S2SController>();
                 builder.Register<TestController>();
                 builder.Register<UsersTestController>();
+                builder.Register<TestServiceLocator>().As<IServiceLocatorProvider>();
 
             };
             ctx.HostStarting += (IHost host) =>
@@ -103,7 +105,7 @@ namespace Stormancer.Server.TestApp
 
                 for (int i = 0; i < S2S_SCENE_COUNT; i++)
                 {
-                    host.EnsureSceneExists(GetS2SSceneId(i), S2S_SCENE_TEMPLATE, isPublic: false, isPersistent: true);
+                    host.EnsureSceneExists(GetS2SSceneId(i.ToString()), S2S_SCENE_TEMPLATE, isPublic: false, isPersistent: true);
                 }
 
             };

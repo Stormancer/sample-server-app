@@ -27,5 +27,12 @@ namespace Stormancer.Server.TestApp
             pipe.Writer.Complete();
             pipe.Reader.Complete();
         }
+
+        [Api(ApiAccess.Public, ApiType.Rpc)]
+        public async Task<bool> TestSendRequestGeneric(string v, RequestContext<IScenePeerClient> ctx)
+        {
+            var session = await userSessions.GetSession(ctx.RemotePeer, ctx.CancellationToken);
+            return await userSessions.SendRequest<bool, string>("b", string.Empty, session.User.Id, v, ctx.CancellationToken);
+        }
     }
 }
