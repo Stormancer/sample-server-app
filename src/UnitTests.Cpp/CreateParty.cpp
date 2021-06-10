@@ -1,29 +1,40 @@
 #include "pch.h"
+
+//Provides a way to store end easily access client instances.
 #include "stormancer/IClientFactory.h"
+
+//Provides APIs related to authentication & user management.
 #include "Users/Users.hpp"
+
+//Provides APIs related to player parties.
 #include "Party/Party.hpp"
-#include "GameFinder/GameFinder.hpp"
-#include "GameSession/Gamesessions.hpp"
+
+
+//Declares MainThreadActionDispatcher, a class that enables the dev to run stormancer callbacks & continuations on the thread of their choice.
+#include "stormancer/IActionDispatcher.h"
 
 constexpr  char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
 constexpr  char* Account = "tests";
 constexpr  char* Application = "test";
 
+TEST(GameFlow, CreateParty) {
 
-TEST(GameFlow, Authenticate) {
+	//Create an action dispatcher to dispatch callbacks and continuation in the thread running the method.
+	auto dispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
 
 	//Create a configuration associated with the client of id 0.
-	Stormancer::IClientFactory::SetConfig(0, []() {
+	Stormancer::IClientFactory::SetConfig(0, [dispatcher]() {
 
 		//Create a configuration that connects to the test application.
 		auto config = Stormancer::Configuration::create(std::string(ServerEndpoint), std::string(Account), std::string(Application));
-		
+
 		//Add plugins required by the test.
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
-		//config->addPlugin(new Stormancer::Party::PartyPlugin());
-		//config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
+		config->addPlugin(new Stormancer::Party::PartyPlugin());
+		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 		//config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
 
+		config->actionDispatcher = dispatcher;
 		return config;
 	});
 
@@ -44,21 +55,40 @@ TEST(GameFlow, Authenticate) {
 
 	//Login manually. Note that calling other APIs automatically performs login if necessary, 
 	//so call this method to login earlier, for instance during game or online menu loading as a form of "preload".
-	auto loginTask = users->login();
 
-	//Login returns an asynchronous task. Call get() to block the current thread until completion and get the result.
-	// .get() throws if an error occured.
-	//call .then() to specify a continuation which will be executed on completion.
-	try
+	bool testCompleted = false;
+	bool testSucceeded = false;
+
+	auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
+
+	Stormancer::Party::PartyRequestDto request;
+	request.GameFinderName = "matchmaking"; 
+	//Name of the matchmaking, defined in Stormancer.Server.TestApp/TestPlugin.cs.
+	//>  host.AddGamefinder("matchmaking", "matchmaking");
+
+	party->createPartyIfNotJoined(request).then([&testCompleted, &testSucceeded](pplx::task<void> t)
 	{
-		loginTask.get();
-		EXPECT_TRUE(true);
-	}
-	catch (std::exception&)
+		try
+		{
+			testCompleted = true;
+			t.get();
+			testSucceeded = true;
+		}
+		catch (std::exception&)
+		{
+			
+			testSucceeded = false;
+		}
+	});
+
+	while (!testCompleted)
 	{
-		EXPECT_TRUE(false);
+		//Runs the  callbacks and continuations waiting to be executed (mostly user code) for max 5ms.
+		dispatcher->update(std::chrono::milliseconds(5));
 	}
 
-	/*EXPECT_EQ(1, 1);
-	EXPECT_TRUE(true);*/
+
+	Stormancer::IClientFactory::ReleaseClient(0);
+	EXPECT_TRUE(testSucceeded);
+
 }

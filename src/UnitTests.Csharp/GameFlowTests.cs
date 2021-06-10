@@ -116,7 +116,7 @@ namespace Tests
             });
             var testsScene = await client.ConnectToPublicScene("test-scene");
 
-            Debug.Assert(await testsScene.RpcAsync<bool,string>("UsersTest.TestSendRequest",data));
+            Debug.Assert(await testsScene.RpcAsync<bool,string>("UsersTest.TestSendRequestGeneric", data));
             
         }
 
@@ -167,7 +167,7 @@ namespace Tests
 
                 var party = client.DependencyResolver.Resolve<PartyApi>();
 
-                await party.CreateParty(new PartyRequestDto { GameFinderName = "testGameFinder" });
+                await party.CreateParty(new PartyRequestDto { GameFinderName = "matchmaking" });
 
                 var gameFinder = client.DependencyResolver.Resolve<GameFinder>();
                 var t = gameFinder.WhenGameFoundAsync(CancellationToken.None);
