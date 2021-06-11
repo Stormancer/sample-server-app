@@ -23,7 +23,7 @@ TEST(GameFlow, CreateParty) {
 	auto dispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
 
 	//Create a configuration associated with the client of id 0.
-	Stormancer::IClientFactory::SetConfig(0, [dispatcher]() {
+	Stormancer::IClientFactory::SetConfig(0, [dispatcher](size_t) {
 
 		//Create a configuration that connects to the test application.
 		auto config = Stormancer::Configuration::create(std::string(ServerEndpoint), std::string(Account), std::string(Application));
@@ -53,8 +53,6 @@ TEST(GameFlow, CreateParty) {
 		return pplx::task_from_result(authParameters);
 	};
 
-	//Login manually. Note that calling other APIs automatically performs login if necessary, 
-	//so call this method to login earlier, for instance during game or online menu loading as a form of "preload".
 
 	bool testCompleted = false;
 	bool testSucceeded = false;
@@ -74,7 +72,7 @@ TEST(GameFlow, CreateParty) {
 			t.get();
 			testSucceeded = true;
 		}
-		catch (std::exception&)
+		catch (std::exception& ex)
 		{
 			
 			testSucceeded = false;

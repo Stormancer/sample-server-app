@@ -30,6 +30,10 @@ namespace Stormancer.Server.TestApp
             {
 
                 host.ConfigureUsers(u => u.ConfigureEphemeral(b => b.Enabled()));
+
+                //Configure matchmaker type named 'matchmaking' to:
+                //- use quickqueue with for 2 teams of 1 player
+                //- create gamesessions with template 'test-gamesession'
                 host.ConfigureGamefinderTemplate("matchmaking", c => c.ConfigureQuickQueue(o => o.GameSessionTemplate("test-gamesession").TeamCount(2).TeamSize(1)));
 
 
