@@ -120,6 +120,31 @@ namespace Tests
             
         }
 
+        [Test(Author = "JMD", Description = "Test  IUserSessions.SendRequest<T> initiated by server ")]
+        public async Task SendServerToClientUserRequestGeneric2()
+        {
+            var testCts = new TaskCompletionSource<bool>();
+            var client = ClientFactory.GetClient(ClientIdGenerator.CreateId());
+            var users = client.DependencyResolver.Resolve<UserApi>();
+            users.OnGetAuthParameters = () => Task.FromResult(new AuthParameters { Type = "ephemeral", Parameters = new Dictionary<string, string> { } });
+            await users.Login();
+
+            var data = "b";
+            var success = false;
+            users.SetOperationHandler("c", ctx =>
+            {
+                var received = ctx.RequestContext.ReadObject<string>();
+                success = received == data;
+               
+                return Task.CompletedTask;
+            });
+            var testsScene = await client.ConnectToPublicScene("test-scene");
+
+            await testsScene.RemoteAction<string>("UsersTest.TestSendRequestGeneric2", data);
+            Debug.Assert(success);
+
+        }
+
         [Test]
         public async Task CreateParty()
         {

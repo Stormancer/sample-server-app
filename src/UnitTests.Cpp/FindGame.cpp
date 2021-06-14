@@ -17,6 +17,11 @@ constexpr  char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.co
 constexpr  char* Account = "tests";
 constexpr  char* Application = "test";
 
+static void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLevel level, std::string msg)
+{
+	client->dependencyResolver().resolve<Stormancer::ILogger>()->log(level,"test.findGame",msg);
+}
+
 pplx::task<bool> FindGameImpl(int id)
 {
 	
@@ -51,8 +56,9 @@ pplx::task<bool> FindGameImpl(int id)
 	return party->createPartyIfNotJoined(request)
 	.then([client]()
 	{
+		log(client, Stormancer::LogLevel::Debug, "connected to party");
 		auto party = client->dependencyResolver().resolve<Stormancer::Party::PartyApi>();
-
+		
 		//Triggers matchmking by setting the player as ready.
 		//Matchmaking starts when all players in the party are ready.
 		return party->updatePlayerStatus(Stormancer::Party::PartyUserStatus::Ready);
