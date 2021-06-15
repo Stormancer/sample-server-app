@@ -24,7 +24,7 @@ static void log(std::shared_ptr<Stormancer::IClient> client, Stormancer::LogLeve
 	client->dependencyResolver().resolve<Stormancer::ILogger>()->log(level, "test.findGame", msg);
 }
 
-pplx::task<bool> FindGameImpl(int id)
+static pplx::task<bool> JoinGameImpl(int id)
 {
 
 
@@ -79,17 +79,39 @@ pplx::task<bool> FindGameImpl(int id)
 		//Errors flow through continuations that take TResult instead of task<TResult> as argument.
 		//We want to handle errors in the last continuation, so this one takes task<TResult>. Inside we get the result of the task by calling task.get()
 		//inside a try clause. If an error occured  .get() will throw. We return false (error). If it doesn't throw, everything succeeded.
-		.then([id](pplx::task<Stormancer::GameSessions::GameSessionConnectionParameters> t)
+		.then([id,client](Stormancer::GameSessions::GameSessionConnectionParameters params)
 		{
+			
+				
+			//P2P connection established.
+			//In the host, this continuation is executed immediatly.
+			//In clients this continuation is executed only if the host called gameSessions->setPlayerReady() (see below)
+			if (params.isHost)
+			{
+				//Start the game host. To communicate with clients, either:
+				//- Use the scene API to send and listen to messages.
+				//- Start a datagram socket and bind to the port specified in config->severGamePort
+			}
+			else
+			{
+				//The host called "setPlayerReady". It should be ready to accept messages. To communicate with the server, either:
+				//- Use the scene API to send and listen to messages.
+				//- Start a socket on a random port (port 0) and send UDP datagrams to the endpoint specified in 'params.endpoint'.
+				// They will be automatically routed to the socket bound by the host as described above.
+			}
+			auto gameSessions = client->dependencyResolver().resolve<Stormancer::GameSessions::GameSession>();
+			return  gameSessions->setPlayerReady();
+	
+		}).then([](pplx::task<void> t) 
+		{
+			//catch errors
 			try
 			{
-				
 				t.get();
 				return true;
 			}
 			catch (std::exception&)
 			{
-
 				return false;
 			}
 		});
@@ -114,6 +136,8 @@ TEST(GameFlow, JoinGameSession) {
 		config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
 		config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
 
+		//If tunnel is enabled in gamesessions, serverGamePort contains the port the game server is expected to bind to by the P2P tunnel. 
+		config->serverGamePort = 7777;
 		config->actionDispatcher = dispatcher;
 		return config;
 	});
@@ -121,8 +145,8 @@ TEST(GameFlow, JoinGameSession) {
 
 
 	std::vector<pplx::task<bool>> tasks;
-	tasks.push_back(FindGameImpl(0));
-	tasks.push_back(FindGameImpl(1));
+	tasks.push_back(JoinGameImpl(0));
+	tasks.push_back(JoinGameImpl(1));
 	auto t = pplx::when_all(tasks.begin(), tasks.end());
 
 	//loop until test is completed and run library events.
