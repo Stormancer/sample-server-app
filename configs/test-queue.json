@@ -1,0 +1,9 @@
+{
+	"limits":{
+		"connections":{
+			"max":1,
+			"queue":1000
+			
+		}
+	}
+}

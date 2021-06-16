@@ -1686,6 +1686,7 @@ namespace Stormancer
 				Event<PartySettings> UpdatedPartySettings;
 				Event<std::vector<std::string>> UpdatedInviteList;
 				Event<PartyGameFinderFailure> OnGameFinderFailed;
+				Subscription connectionStateChangedSubscription;
 
 				std::vector<PartyUserDto> members() const
 				{
@@ -1782,7 +1783,7 @@ namespace Stormancer
 						}
 					});
 
-					scene->getConnectionStateChangedObservable().subscribe([wThat](ConnectionState state) {
+					connectionStateChangedSubscription = scene->subscribeConnectionStateChanged([wThat](ConnectionState state) {
 						if (auto that = wThat.lock())
 						{
 							try
@@ -1793,6 +1794,8 @@ namespace Stormancer
 								}
 								else if (state == ConnectionState::Disconnected)
 								{
+									//Unsubscribe
+									that->connectionStateChangedSubscription = nullptr;
 									that->_gameFinder->disconnectFromGameFinder(that->_state.settings.gameFinderName)
 										.then([](pplx::task<void> t)
 									{
@@ -2159,7 +2162,6 @@ namespace Stormancer
 
 				pplx::task<void> handleSettingsUpdateMessage(RpcRequestContext_ptr ctx)
 				{
-					_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Receiving settings update");
 					std::lock_guard<std::recursive_mutex> lg(_stateMutex);
 
 					if (checkVersionNumber(ctx))
@@ -2191,7 +2193,6 @@ namespace Stormancer
 
 				pplx::task<void> handleUserDataUpdateMessage(RpcRequestContext_ptr ctx)
 				{
-					_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Receiving userdata update");
 					std::lock_guard<std::recursive_mutex> lg(_stateMutex);
 
 					if (checkVersionNumber(ctx))
@@ -2229,7 +2230,6 @@ namespace Stormancer
 
 				pplx::task<void> handleMemberStatusUpdateMessage(RpcRequestContext_ptr ctx)
 				{
-					_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Receiving status update update");
 					std::lock_guard<std::recursive_mutex> lg(_stateMutex);
 
 					if (checkVersionNumber(ctx))
@@ -2244,7 +2244,6 @@ namespace Stormancer
 
 				pplx::task<void> handleMemberConnected(RpcRequestContext_ptr ctx)
 				{
-					_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Receiving member connected update");
 					std::lock_guard<std::recursive_mutex> lg(_stateMutex);
 
 					if (checkVersionNumber(ctx))
@@ -2263,7 +2262,6 @@ namespace Stormancer
 
 				void applyMemberDisconnection(const MemberDisconnection& message)
 				{
-					
 					std::lock_guard<std::recursive_mutex> lg(_stateMutex);
 
 					auto member = std::find_if(_state.members.begin(), _state.members.end(), [&message](const PartyUserDto& user) { return message.userId == user.userId; });
@@ -2283,7 +2281,6 @@ namespace Stormancer
 
 				pplx::task<void> handleMemberDisconnectedMessage(RpcRequestContext_ptr ctx)
 				{
-					_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Receiving ùeùber disconnected update");
 					std::lock_guard<std::recursive_mutex> lg(_stateMutex);
 
 					if (checkVersionNumber(ctx))
@@ -2312,7 +2309,6 @@ namespace Stormancer
 
 				pplx::task<void> handleLeaderChangedMessage(RpcRequestContext_ptr ctx)
 				{
-					_logger->log(LogLevel::Trace, "PartyService::handleSettingsUpdate", "Receiving leader changed update");
 					std::lock_guard<std::recursive_mutex> lg(_stateMutex);
 
 					if (checkVersionNumber(ctx))

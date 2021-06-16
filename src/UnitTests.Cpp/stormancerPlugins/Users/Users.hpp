@@ -367,10 +367,7 @@ namespace Stormancer
 			{
 			}
 
-			~UsersApi()
-			{
-				_connectionSubscription.unsubscribe();
-			}
+		
 
 			/// <summary>
 			/// Set the platform-specific user that should be authenticated with Stormancer.
@@ -1004,7 +1001,7 @@ namespace Stormancer
 					auto that = wThat.lock();
 					if (that)
 					{
-						that->_connectionSubscription = scene->getConnectionStateChangedObservable().subscribe([wThat](ConnectionState state)
+						that->_connectionSubscription = scene->subscribeConnectionStateChanged([wThat](ConnectionState state)
 						{
 							auto that = wThat.lock();
 							if (that)
@@ -1235,7 +1232,7 @@ namespace Stormancer
 			std::string _username;
 			std::weak_ptr<IClient> _wClient;
 			GameConnectionState _currentConnectionState;
-			rxcpp::composite_subscription _connectionSubscription;
+			Subscription _connectionSubscription;
 			ILogger_ptr _logger;
 
 			//Task that completes when the user is authenticated.
