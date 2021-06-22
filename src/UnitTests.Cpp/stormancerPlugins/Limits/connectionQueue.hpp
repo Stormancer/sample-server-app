@@ -60,11 +60,12 @@ namespace Stormancer
 			}
 			bool isInQueue()
 			{
-				return !_service.expired() && users->connectionState() == Users::GameConnectionState::Authenticating;
+				return !_service.expired() && users->connectionState() == Users::GameConnectionState::Connecting;
 			}
 			int getRank()
 			{
-				if (auto service = _service.lock())
+				auto service = _service.lock();
+				if (service && isInQueue())
 				{
 					return service->getRank();
 				}
@@ -117,7 +118,7 @@ namespace Stormancer
 
 			void sceneDisconnecting(std::shared_ptr<Scene> scene) override
 			{
-				auto name = scene->getHostMetadata("stormancer.gamesession");
+				auto name = scene->getHostMetadata(PLUGIN_NAME);
 				if (name.length() > 0)
 				{
 					scene->dependencyResolver().resolve<ConnectionQueue>()->_service.reset();

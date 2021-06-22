@@ -52,7 +52,7 @@ pplx::task<bool> runAgent(int id, AgentState& state)
 	});
 }
 
-int getConnectedAgent(AgentState state[], int length)
+int getConnectedAgent(AgentState state[],int ranks[], int length)
 {
 	int result = -1;
 	for (int i = 0; i < length; i++)
@@ -61,7 +61,19 @@ int getConnectedAgent(AgentState state[], int length)
 		{
 			//Only one connected
 			EXPECT_TRUE(result == -1);
+
+			auto client = Stormancer::IClientFactory::GetClient(i);
+			EXPECT_FALSE(client->dependencyResolver().resolve<Stormancer::Limits::ConnectionQueue>()->isInQueue());
+			ranks[i] = -1;
 			result = i;
+		}
+		else if (state[i] == AgentState::InQueue)
+		{
+			auto client = Stormancer::IClientFactory::GetClient(i);
+			auto queue = client->dependencyResolver().resolve<Stormancer::Limits::ConnectionQueue>();
+			auto isInQueue =queue->isInQueue();
+			ranks[i] = queue->getRank();
+			std::cout << isInQueue;
 		}
 	}
 	return result;
@@ -103,7 +115,7 @@ TEST(GameFlow, AuthenticateWithQueue) {
 
 	const int nbAgents = 4;
 	AgentState agentStates[nbAgents];
-
+	int ranks[nbAgents];
 
 	std::vector<pplx::task<bool>> tasks;
 
@@ -120,7 +132,9 @@ TEST(GameFlow, AuthenticateWithQueue) {
 		dispatcher->update(std::chrono::milliseconds(5));
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-		auto connectedAgent = getConnectedAgent(agentStates, nbAgents);
+		auto connectedAgent = getConnectedAgent(agentStates,ranks, nbAgents);
+
+		
 		if (connectedAgent != -1)
 		{
 			disconnectAgent(connectedAgent, agentStates[connectedAgent]);

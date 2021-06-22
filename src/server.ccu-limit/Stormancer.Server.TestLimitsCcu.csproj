@@ -13,7 +13,7 @@
     <PackageReference Include="Stormancer.Abstractions.Server" Version="5.0.0" />
     <PackageReference Include="Stormancer.Server.Plugins.Api" Version="2.3.0" />
     <PackageReference Include="Stormancer.Server.Plugins.Api.S2SProxyGenerator" Version="1.0.2.4" />
-    <PackageReference Include="Stormancer.Server.Plugins.Limits" Version="0.1.7.8-pre"/>
+    <PackageReference Include="Stormancer.Server.Plugins.Limits" Version="0.1.7.9-pre"/>
     <PackageReference Include="Stormancer.Server.Plugins.Users" Version="5.0.1.5" />
   </ItemGroup>
 
