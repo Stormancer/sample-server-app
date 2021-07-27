@@ -42,7 +42,7 @@ namespace Tests
 
             var party = client.DependencyResolver.Resolve<PartyApi>();
 
-            await party.CreateParty(new PartyRequestDto { GameFinderName = "testGameFinder" });
+            await party.CreateParty(new PartyRequestDto { GameFinderName = "matchmaking" });
 
             var gameFinder = client.DependencyResolver.Resolve<GameFinder>();
             var t = gameFinder.WhenGameFoundAsync(CancellationToken.None);
@@ -237,7 +237,7 @@ namespace Tests
         }
 
         [Test]
-        public async Task SendMessage()
+        public async Task SendMessageToAuthority()
         {
             var tcs = new TaskCompletionSource<bool>();
             var nbEvents = 0;
@@ -257,7 +257,7 @@ namespace Tests
                                 case "user":
                                     ctx.Entity.AddComponent<UserState>("userState");
                                     ctx.Entity.AddComponent<TimerState>("timer");
-                                    ctx.Entity.ConfigureMessageHandler("test", m => tcs.SetResult(true));
+                                    ctx.Entity.ConfigureMessageHandler("test", m => tcs.TrySetResult(true));
                                     break;
                                 default:
                                     throw new NotSupportedException($"Entity type '{ctx.Entity.Type}' not supported.");
@@ -295,11 +295,12 @@ namespace Tests
                     {
                         watch.Stop();
                         System.Diagnostics.Debug.WriteLine($"synchronized: {watch.ElapsedMilliseconds}ms");
-                        batch.Changes.Where(arg => !arg.Entity.IsAuthority).Select(arg =>
+
+                        foreach(var change in batch.Changes.Where(arg => !arg.Entity.IsAuthority))
                         {
-                            arg.Entity.SendMessageToAuthority("test", m => m);
-                            return true;
-                        });
+                            change.Entity.SendMessageToAuthority("test", m => m);
+                        }
+                        
                     }
 
 
@@ -321,6 +322,105 @@ namespace Tests
 
                 await await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
 
+
+                var results = new List<Entity>();
+                rep.Entities.Query((_, _) => true, results, null);
+                ClientFactory.ReleaseClient(clientId);
+            }
+
+            await Task.WhenAll(names.Select(name => ReplicateEntity_Impl(ClientIdGenerator.CreateId(), name)));
+            //Debug.Assert(nbEvents == names.Count * names.Count);
+        }
+
+
+        [Test]
+        public async Task BroadcastMessage()
+        {
+            var tcs = new TaskCompletionSource();
+            var msgtcs = new TaskCompletionSource();
+            var nbEvents = 0;
+            var watch = new Stopwatch();
+            var names = new List<string> { "Félinë", "Talrae"/*, "Nari", "Shyn'tae"*/ };
+            async Task ReplicateEntity_Impl(int clientId, string myName)
+            {
+                var client = ClientFactory.GetClient(clientId);
+                var scene = await ConnectToGameSession_Impl(client, s =>
+                {
+
+                    s.DependencyResolver.Resolve<ReplicationApi>().Configure(b => b
+                        .ConfigureEntityBuilder(ctx =>
+                        {
+                            switch (ctx.Entity.Type)
+                            {
+                                case "user":
+                                    ctx.Entity.AddComponent<UserState>("userState");
+                                    ctx.Entity.AddComponent<TimerState>("timer");
+                                    ctx.Entity.ConfigureMessageHandler("test", m => msgtcs.TrySetResult());
+                                    break;
+                                default:
+                                    throw new NotSupportedException($"Entity type '{ctx.Entity.Type}' not supported.");
+                            }
+                            return Task.Delay(1000);
+                        })
+                        .ConfigureViewDataPolicy("authority", b => b)
+                    );
+
+
+                });
+                watch.Start();
+                var rep = scene.DependencyResolver.Resolve<ReplicationApi>();
+
+
+                var result = new List<Entity>();
+
+                rep.EntitiesChanged += (EntitiesChangedEventArgs batch) =>
+                {
+                    nbEvents++;
+                    var success = true;
+                    Debug.WriteLine($"Event : [{myName}] {string.Join(", ", batch.Changes.Select(c => $"{c.ChangeType}:{c.Entity.Id}"))}");
+
+                    foreach (var name in names)
+                    {
+                        result.Clear();
+                        rep.Entities.Query((Entity e, object userState) => e.GetComponent<UserState>("userState").Name == (string)userState, result, name);
+                        if (!result.Any())
+                        {
+                            success = false;
+                            break;
+                        }
+                    }
+                    if (success)
+                    {
+                        watch.Stop();
+                        System.Diagnostics.Debug.WriteLine($"synchronized: {watch.ElapsedMilliseconds}ms");
+
+                        tcs.TrySetResult();
+
+                    }
+
+
+                };
+
+                await rep.WhenAuthoritySynchronized();
+                //Create an entity.
+                watch.Stop();
+                System.Diagnostics.Debug.WriteLine($"Init: {watch.ElapsedMilliseconds}ms");
+
+                watch.Restart();
+
+                var entity = await rep.CreateEntity("user", e =>
+                {
+                    e.GetComponent<UserState>("userState").Name = myName;
+                });
+
+                var cts = new CancellationTokenSource(5000000);
+
+                await await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
+
+                entity.BroadcastMessage("test", m => m.IncludeAuthority(false));
+
+
+                await await Task.WhenAny(msgtcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
 
                 var results = new List<Entity>();
                 rep.Entities.Query((_, _) => true, results, null);

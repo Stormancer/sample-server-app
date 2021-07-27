@@ -41,40 +41,54 @@ pplx::task<bool> runAgent(int id, AgentState& state)
 	return users->login().then([&state](pplx::task<void> t) {
 		try
 		{
-			state = AgentState::Connected;
+			
 			t.get();
+			state = AgentState::Connected;
 			return  true;
 		}
 		catch (std::exception&)
 		{
+			state = AgentState::Disconnected;
 			return false;
 		}
 	});
 }
-
-int getConnectedAgent(AgentState state[],int ranks[], int length)
+struct Stats
+{
+	int maxInQueue;
+	int maxCcu;
+};
+int getConnectedAgent(AgentState state[], int ranks[], int length, Stats& stats)
 {
 	int result = -1;
+	int currentCcu = 0;
+	int currentInQueue = 0;
 	for (int i = 0; i < length; i++)
 	{
+		auto client = Stormancer::IClientFactory::GetClient(i);
+		auto queue = client->dependencyResolver().resolve<Stormancer::Limits::ConnectionQueue>();
 		if (state[i] == AgentState::Connected)
 		{
 			//Only one connected
-			EXPECT_TRUE(result == -1);
+			currentCcu++;
 
-			auto client = Stormancer::IClientFactory::GetClient(i);
-			EXPECT_FALSE(client->dependencyResolver().resolve<Stormancer::Limits::ConnectionQueue>()->isInQueue());
+			
 			ranks[i] = -1;
 			result = i;
 		}
-		else if (state[i] == AgentState::InQueue)
+		else if (queue->isInQueue() && queue->getRank() != -1)
 		{
-			auto client = Stormancer::IClientFactory::GetClient(i);
-			auto queue = client->dependencyResolver().resolve<Stormancer::Limits::ConnectionQueue>();
-			auto isInQueue =queue->isInQueue();
-			ranks[i] = queue->getRank();
-			std::cout << isInQueue;
+			currentInQueue++;
 		}
+	}
+
+	if (stats.maxCcu < currentCcu)
+	{
+		stats.maxCcu = currentCcu;
+	}
+	if (stats.maxInQueue < currentInQueue)
+	{
+		stats.maxInQueue = currentInQueue;
 	}
 	return result;
 }
@@ -113,7 +127,7 @@ TEST(GameFlow, AuthenticateWithQueue) {
 		return config;
 	});
 
-	const int nbAgents = 4;
+	const int nbAgents = 5;
 	AgentState agentStates[nbAgents];
 	int ranks[nbAgents];
 
@@ -125,6 +139,7 @@ TEST(GameFlow, AuthenticateWithQueue) {
 	}
 	auto t = pplx::when_all(tasks.begin(), tasks.end());
 
+	Stats stats;
 	//loop until test is completed and run library events.
 	while (!t.is_done())
 	{
@@ -132,7 +147,7 @@ TEST(GameFlow, AuthenticateWithQueue) {
 		dispatcher->update(std::chrono::milliseconds(5));
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-		auto connectedAgent = getConnectedAgent(agentStates,ranks, nbAgents);
+		auto connectedAgent = getConnectedAgent(agentStates,ranks, nbAgents,stats);
 
 		
 		if (connectedAgent != -1)
@@ -146,8 +161,11 @@ TEST(GameFlow, AuthenticateWithQueue) {
 		Stormancer::IClientFactory::ReleaseClient(i);
 	
 	}
-	for (auto t : tasks)
+	EXPECT_TRUE(stats.maxCcu <= 5);
+	EXPECT_TRUE(stats.maxInQueue <= 10);
+
+	/*for (int i = 0; i < nbAgents; i++)
 	{
-		EXPECT_TRUE(t.get());
-	}
+		EXPECT_TRUE(tasks[i].get());
+	}*/
 }

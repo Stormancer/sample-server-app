@@ -1,43 +1,33 @@
-#include "pch.h"
-
+#include "Worker.h"
+#include "Timer.h"
 //Provides a way to store end easily access client instances.
 #include "stormancer/IClientFactory.h"
-
+#include "stormancer/Logger/VisualStudioLogger.h"
 //Provides APIs related to authentication & user management.
 #include "Users/Users.hpp"
-
-
-//Declares MainThreadActionDispatcher, a class that enables the dev to run stormancer callbacks & continuations on the thread of their choice.
-#include "stormancer/IActionDispatcher.h"
 
 constexpr const char* ServerEndpoint = "http://localhost";//"http://gc3.stormancer.com";
 constexpr const char* Account = "tests";
 constexpr const char* Application = "test";
 
-
-TEST(GameFlow, Authenticate) {
-
-	//Create an action dispatcher to dispatch callbacks and continuation in the thread running the method.
-	auto dispatcher = std::make_shared<Stormancer::MainThreadActionDispatcher>();
-
+pplx::task<StressTool::Result> StressTool::ConnectionWorker::run(int id)
+{
+	auto timer = std::make_shared<Timer>();
 	//Create a configuration associated with the client of id 0.
-	Stormancer::IClientFactory::SetConfig(0, [dispatcher](size_t) {
+	Stormancer::IClientFactory::SetConfig(id, [](size_t) {
 
 		//Create a configuration that connects to the test application.
 		auto config = Stormancer::Configuration::create(std::string(ServerEndpoint), std::string(Account), std::string(Application));
-
+		//config->logger = std::make_shared<Stormancer::VisualStudioLogger>();
 		//Add plugins required by the test.
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
-		//config->addPlugin(new Stormancer::Party::PartyPlugin());
-		//config->addPlugin(new Stormancer::GameFinder::GameFinderPlugin());
-		//config->addPlugin(new Stormancer::GameSessions::GameSessionsPlugin());
 
-		config->actionDispatcher = dispatcher;
+		
 		return config;
 	});
 
 	//Gets client with id 0.
-	auto client = Stormancer::IClientFactory::GetClient(0);
+	auto client = Stormancer::IClientFactory::GetClient(id);
 
 	auto users = client->dependencyResolver().resolve<Stormancer::Users::UsersApi>();
 
@@ -54,32 +44,27 @@ TEST(GameFlow, Authenticate) {
 	//Login manually. Note that calling other APIs automatically performs login if necessary, 
 	//so call this method to login earlier, for instance during game or online menu loading as a form of "preload".
 
-	bool testCompleted = false;
-	bool testSucceeded = false;
 
+	timer->start();
 	//login() returns an asynchronous task, which calls the continuation function specified as argument of then() when it is completed.
 	// t.get() blocks until completion 
-	users->login().then([&testCompleted, &testSucceeded](pplx::task<void> t) {
+	return users->login().then([timer,id](pplx::task<void> t) {
+		Stormancer::IClientFactory::ReleaseClient(id);
+		Result r;
+		r.duration = timer->getElapsedTimeInMilliSec();
 		try
 		{
-			testCompleted = true;
+		
 			t.get();
-			testSucceeded = true;
+			r.success = true;
+			
 		}
-		catch (std::exception&)
+		catch (std::exception& ex)
 		{
-			testSucceeded = false;
+			std::cout << ex.what();
+			r.success = false;
 		}
+		return r;
 	});
-
-	while (!testCompleted)
-	{
-		//Runs the  callbacks and continuations waiting to be executed (mostly user code) for max 5ms.
-		dispatcher->update(std::chrono::milliseconds(5));
-	}
-
-
-	Stormancer::IClientFactory::ReleaseClient(0);
-	EXPECT_TRUE(testSucceeded);
 
 }
