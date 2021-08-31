@@ -6,7 +6,7 @@
 //Provides APIs related to authentication & user management.
 #include "Users/Users.hpp"
 
-#include "cpprest/http_client.h"
+#include "stormancer/cpprestsdk/cpprest/http_client.h"
 
 #include "stormancer/Logger/FileLogger.h"
 

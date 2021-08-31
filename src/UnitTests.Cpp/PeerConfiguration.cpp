@@ -7,7 +7,6 @@
 #include "Users/Users.hpp"
 
 #include "PeerConfiguration/PeerConfiguration.hpp"
-#include "cpprest/http_client.h"
 
 #include "stormancer/Logger/FileLogger.h"
 

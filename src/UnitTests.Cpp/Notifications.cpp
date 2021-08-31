@@ -7,7 +7,7 @@
 #include "Users/Users.hpp"
 
 #include "InAppNotification/Notifications.hpp"
-#include "cpprest/http_client.h"
+#include "stormancer/cpprestsdk/cpprest/http_client.h"
 
 #include "stormancer/Logger/FileLogger.h"
 
