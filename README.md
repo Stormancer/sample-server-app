@@ -8,7 +8,7 @@ A simple Stormancer server application demonstrating auth, party, gamefinder and
     dotnet tools install Stormancer.CLI --global
     
     # Install the Management CLI.
-    stormancer plugins install --id Stormancer.Management.CLI
+    stormancer plugins add --id Stormancer.Management.CLI
     
     # Create default server config
     stormancer new config
