@@ -42,6 +42,7 @@
     <ClCompile Include="CreateParty.cpp" />
     <ClCompile Include="FindGame.cpp" />
     <ClCompile Include="JoinGameSession.cpp" />
+    <ClCompile Include="JoinPartyWithCode.cpp" />
     <ClCompile Include="Kick.cpp" />
     <ClCompile Include="Notifications.cpp" />
     <ClCompile Include="pch.cpp">
