@@ -24,6 +24,7 @@ namespace Stormancer.Server.TestApp
                 builder.Register<TestController>();
                 builder.Register<UsersTestController>();
                 builder.Register<TestServiceLocator>().As<IServiceLocatorProvider>();
+                builder.Register<RejectConnectionController>();
 
             };
             ctx.HostStarting += (IHost host) =>
@@ -54,6 +55,12 @@ namespace Stormancer.Server.TestApp
                 {
                     scene.AddGameSession();
                     scene.AddReplication();
+                });
+
+                host.AddSceneTemplate("rejection-test-scene", scene => 
+                {
+                    scene.AddController<RejectConnectionController>();
+                
                 });
 
                 host.AddSceneTemplate("test-connection-rejected", scene =>
@@ -111,6 +118,8 @@ namespace Stormancer.Server.TestApp
                 {
                     host.EnsureSceneExists(GetS2SSceneId(i.ToString()), S2S_SCENE_TEMPLATE, isPublic: false, isPersistent: true);
                 }
+
+                host.EnsureSceneExists("rejection-test-scene", "rejection-test-scene", true, true);
 
             };
 

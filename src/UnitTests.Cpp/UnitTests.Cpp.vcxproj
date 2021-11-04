@@ -45,6 +45,7 @@
     <ClCompile Include="JoinPartyWithCode.cpp" />
     <ClCompile Include="Kick.cpp" />
     <ClCompile Include="Notifications.cpp" />
+	  <ClCompile Include="RejectConnection.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
