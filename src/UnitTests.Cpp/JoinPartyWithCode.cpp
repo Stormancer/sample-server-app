@@ -127,7 +127,7 @@ TEST(GameFlow, JoinPartyWithCode) {
 			t.get();
 			return true;
 		}
-		catch (std::exception& ex)
+		catch (std::exception&)
 		{
 
 			return false;

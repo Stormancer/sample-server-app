@@ -15,7 +15,7 @@
     <PackageReference Include="Stormancer.Server.Plugins.Api" Version="2.3.1.1" />
     <PackageReference Include="Stormancer.Server.Plugins.Api.S2SProxyGenerator" Version="1.0.3" />
     <PackageReference Include="Stormancer.Server.Plugins.GameFinder" Version="6.1.0.13" />
-    <PackageReference Include="Stormancer.Server.Plugins.Notification" Version="3.1.0.5-pre" />
+    <PackageReference Include="Stormancer.Server.Plugins.Notification" Version="3.1.0.4-pre" />
     <PackageReference Include="Stormancer.Server.Plugins.Party" Version="4.1.0.4-pre" />
     <PackageReference Include="Stormancer.Server.Plugins.PeerConfiguration" Version="0.2.0" />
     <PackageReference Include="Stormancer.Server.Plugins.Replication" Version="0.1.4.1" />
