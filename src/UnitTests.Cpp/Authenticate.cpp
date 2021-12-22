@@ -25,7 +25,7 @@ TEST(GameFlow, Authenticate) {
 
 		//Create a configuration that connects to the test application.
 		auto config = Stormancer::Configuration::create(std::string(ServerEndpoint), std::string(Account), std::string(Application));
-
+		config->encryptionEnabled = true;
 		//Add plugins required by the test.
 		config->addPlugin(new Stormancer::Users::UsersPlugin());
 		//config->addPlugin(new Stormancer::Party::PartyPlugin());
